@@ -12,9 +12,12 @@ import {
   TabPanel,
 } from "@chakra-ui/react";
 
-interface User {
+export interface User {
+  _id: string;
   name: string;
   email: string;
+  picture: string;
+  access_token: string;
 }
 
 export interface Chat {

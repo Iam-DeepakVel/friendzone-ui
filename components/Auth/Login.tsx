@@ -61,7 +61,6 @@ const Login = () => {
       setLoading(false);
       router.push("/chats");
     } catch (error: any) {
-      console.log("ERROR", error);
       toast({
         title: error.response.data.message,
         status: "error",
