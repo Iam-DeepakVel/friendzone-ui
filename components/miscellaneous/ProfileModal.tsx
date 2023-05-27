@@ -1,6 +1,5 @@
 import { User } from "@/containers/Home";
 import {
-  Button,
   IconButton,
   Image,
   Modal,

@@ -8,6 +8,8 @@ import React, { useState } from "react";
 
 const Chat = () => {
   const { user } = ChatState();
+  // Using fetchAgain to make useEffect execute again & fetch all the chats once again
+  // We will change this fetchAgain boolean state whenever any updates happens Eg: Updating Group Name should change the name of groups in myChats Components also
   const [fetchAgain, setFetchAgain] = useState(false);
 
   return (
