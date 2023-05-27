@@ -28,7 +28,7 @@ import axios from "axios";
 import ChatLoading from "../../widgets/ChatLoading";
 import { User } from "@/containers/Home";
 
-const UserListItem = ({
+export const UserListItem = ({
   user,
   handleFunction,
 }: {
@@ -141,6 +141,7 @@ const SideDrawer = () => {
         config
       );
 
+      // If the newly created chat already not present in the chats array then add it to the chats array to display in MyChats UI
       if (!chats.find((chat: any) => chat._id === data._id)) {
         setChats([data, ...chats]);
       }

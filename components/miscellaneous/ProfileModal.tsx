@@ -7,7 +7,6 @@ import {
   ModalBody,
   ModalCloseButton,
   ModalContent,
-  ModalFooter,
   ModalHeader,
   ModalOverlay,
   Text,
@@ -21,7 +20,7 @@ const ProfileModal = ({
   children,
 }: {
   user: User;
-  children: ReactNode;
+  children?: ReactNode;
 }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   return (
