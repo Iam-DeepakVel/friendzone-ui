@@ -21,6 +21,7 @@ import {
 import React, { useState } from "react";
 import UserBadgeItem from "./UserBadgeItem";
 import axios from "axios";
+import { UserListItem } from "./SideDrawer";
 
 interface UpdateGroupChatModalProps {
   fetchAgain: boolean;
@@ -74,9 +75,133 @@ const UpdateGroupChatModal = ({
     setGroupChatName("");
   };
 
-  const handleRemove = (user: User) => {};
-  const handleSearch = (query: string) => {};
+  const handleAddUser = async (userToAdd: User) => {
+    if (selectedChat?.users.find((user: User) => user._id === userToAdd._id)) {
+      toast({
+        title: "User Already in group!",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+        position: "bottom",
+      });
+      return;
+    }
 
+    if (selectedChat.groupAdmin._id !== user._id) {
+      toast({
+        title: "Only Admins can add someone!",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+        position: "bottom",
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const config = {
+        headers: {
+          Authorization: `Bearer ${user.access_token}`,
+        },
+      };
+
+      const { data } = await axios.put(
+        `${process.env.NEXT_PUBLIC_FRIEND_ZONE_API}/chat/add-to-group`,
+        { chatId: selectedChat._id, userId: userToAdd._id },
+        config
+      );
+
+      setSelectedChat(data);
+      setFetchAgain(!fetchAgain);
+    } catch (error) {
+      toast({
+        title: "Failed to Add User! Try again",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+        position: "bottom",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  const handleRemove = async (userToRemove: User) => {
+    // 1) Only Admin can remove users
+    // 2) second condition make sure that user can remove themselves from group even if they are not a admin
+    if (
+      selectedChat.groupAdmin._id !== user._id &&
+      userToRemove._id !== user._id
+    ) {
+      toast({
+        title: "Only Admins can add someone!",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+        position: "bottom",
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const config = {
+        headers: {
+          Authorization: `Bearer ${user.access_token}`,
+        },
+      };
+
+      const { data } = await axios.put(
+        `${process.env.NEXT_PUBLIC_FRIEND_ZONE_API}/chat/remove-from-group`,
+        { chatId: selectedChat._id, userId: userToRemove._id },
+        config
+      );
+
+      // When user click leave group , selectedChat will be made empty
+      userToRemove._id === user._id ? setSelectedChat() : setSelectedChat(data);
+      setFetchAgain(!fetchAgain);
+    } catch (error) {
+      toast({
+        title: "Failed to Add User! Try again",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+        position: "bottom",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = async (query: string) => {
+    if (!query) {
+      return;
+    }
+    try {
+      setLoading(true);
+      const config = {
+        headers: {
+          Authorization: `Bearer ${user.access_token}`,
+        },
+      };
+
+      const { data } = await axios.get(
+        `${process.env.NEXT_PUBLIC_FRIEND_ZONE_API}/user?search=${query}`,
+        config
+      );
+      setSearchResult(data);
+      setLoading(false);
+    } catch (error) {
+      toast({
+        title: "Error Occured!",
+        description: "Failed to Load Search Results",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+        position: "bottom-left",
+      });
+    }
+  };
   return (
     <>
       <IconButton
@@ -132,9 +257,23 @@ const UpdateGroupChatModal = ({
                 onChange={(e) => handleSearch(e.target.value)}
               />
             </FormControl>
+
+            {loading ? (
+              <Spinner size="lg" mt={5} />
+            ) : (
+              searchResult?.map((user: User) => (
+                <UserListItem
+                  key={user._id}
+                  user={user}
+                  handleFunction={() => handleAddUser(user)}
+                />
+              ))
+            )}
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="red">Leave Group</Button>
+            <Button onClick={() => handleRemove(user)} colorScheme="red">
+              Leave Group
+            </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
