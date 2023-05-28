@@ -12,12 +12,15 @@ import {
 } from "@chakra-ui/react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
+import { ChatState } from "@/context/ChatProvider";
 
 const Login = () => {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const { setUser } = ChatState();
 
   const toast = useToast();
   const router = useRouter();

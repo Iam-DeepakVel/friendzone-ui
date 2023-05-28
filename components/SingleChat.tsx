@@ -1,10 +1,20 @@
 import { getSender, getSenderFull } from "@/config/ChatLogics";
 import { ChatState } from "@/context/ChatProvider";
 import { ArrowBackIcon } from "@chakra-ui/icons";
-import { Box, IconButton, Text } from "@chakra-ui/react";
-import React from "react";
+import {
+  Box,
+  FormControl,
+  IconButton,
+  Input,
+  Spinner,
+  Text,
+  useToast,
+} from "@chakra-ui/react";
+import React, { useEffect, useState } from "react";
 import ProfileModal from "./miscellaneous/ProfileModal";
 import UpdateGroupChatModal from "./miscellaneous/UpdateGroupChatModal";
+import axios from "axios";
+import ScrollableChat from "./ScrollableChat";
 
 interface SingleChatProps {
   fetchAgain: boolean;
@@ -12,7 +22,80 @@ interface SingleChatProps {
 }
 
 const SingleChat = ({ fetchAgain, setFetchAgain }: SingleChatProps) => {
+  const [messages, setMessages] = useState<any>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [loading, setLoading] = useState(false);
   const { user, selectedChat, setSelectedChat } = ChatState();
+
+  const toast = useToast();
+
+  const fetchMessages = async () => {
+    if (!selectedChat) return;
+    try {
+      const config = {
+        headers: {
+          Authorization: `Bearer ${user.access_token}`,
+        },
+      };
+      setLoading(true);
+      const { data } = await axios.get(
+        `${process.env.NEXT_PUBLIC_FRIEND_ZONE_API!}/message/${
+          selectedChat._id
+        }`,
+        config
+      );
+      setMessages(data);
+    } catch (error) {
+      toast({
+        title: "Failed to load the chat! Try again",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+        position: "bottom",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMessages();
+  }, [selectedChat]);
+
+  const sendMessage = async (e: React.KeyboardEvent<HTMLImageElement>) => {
+    if (e.key === "Enter" && newMessage) {
+      try {
+        const config = {
+          headers: {
+            "Content-type": "application/json",
+            Authorization: `Bearer ${user.access_token}`,
+          },
+        };
+
+        setNewMessage("");
+        const { data } = await axios.post(
+          `${process.env.NEXT_PUBLIC_FRIEND_ZONE_API!}/message`,
+          { content: newMessage, chatId: selectedChat._id },
+          config
+        );
+        console.log(data);
+        setMessages([...messages, data]);
+      } catch (error) {
+        toast({
+          title: "Error Occured!",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+          position: "bottom",
+        });
+      }
+    }
+  };
+
+  const typingHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+    // Typing Indicator Logic
+  };
   return (
     <>
       {selectedChat ? (
@@ -44,6 +127,7 @@ const SingleChat = ({ fetchAgain, setFetchAgain }: SingleChatProps) => {
                 <UpdateGroupChatModal
                   fetchAgain={fetchAgain}
                   setFetchAgain={setFetchAgain}
+                  fetchMessages={fetchMessages}
                 />
               </>
             )}
@@ -59,7 +143,28 @@ const SingleChat = ({ fetchAgain, setFetchAgain }: SingleChatProps) => {
             borderRadius="lg"
             overflowY="hidden"
           >
-            {/* Messages Here */}
+            {loading ? (
+              <Spinner
+                size="xl"
+                w={20}
+                h={20}
+                alignSelf={"center"}
+                margin={"auto"}
+              />
+            ) : (
+              <div className="messages">
+                <ScrollableChat messages={messages} />
+              </div>
+            )}
+            <FormControl onKeyDown={sendMessage} isRequired mt={3}>
+              <Input
+                variant={"filled"}
+                bg="#E0E0E0"
+                placeholder="Enter a message..."
+                onChange={typingHandler}
+                value={newMessage}
+              />
+            </FormControl>
           </Box>
         </>
       ) : (

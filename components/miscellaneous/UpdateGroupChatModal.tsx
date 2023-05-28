@@ -26,11 +26,13 @@ import { UserListItem } from "./SideDrawer";
 interface UpdateGroupChatModalProps {
   fetchAgain: boolean;
   setFetchAgain: React.Dispatch<React.SetStateAction<boolean>>;
+  fetchMessages: () => any;
 }
 
 const UpdateGroupChatModal = ({
   fetchAgain,
   setFetchAgain,
+  fetchMessages,
 }: UpdateGroupChatModalProps) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { selectedChat, setSelectedChat, user } = ChatState();
@@ -160,6 +162,7 @@ const UpdateGroupChatModal = ({
       // When user click leave group , selectedChat will be made empty
       userToRemove._id === user._id ? setSelectedChat() : setSelectedChat(data);
       setFetchAgain(!fetchAgain);
+      fetchMessages();
     } catch (error) {
       toast({
         title: "Failed to Add User! Try again",
