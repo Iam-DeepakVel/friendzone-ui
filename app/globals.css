@@ -27,3 +27,18 @@
   overflow-y: scroll;
   scrollbar-width: none;
 }
+
+.notification-badge {
+  background-color: red;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  position: absolute;
+  right: 1px;
+  top: -2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 14px;
+}

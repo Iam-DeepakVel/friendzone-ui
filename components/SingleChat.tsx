@@ -15,19 +15,38 @@ import ProfileModal from "./miscellaneous/ProfileModal";
 import UpdateGroupChatModal from "./miscellaneous/UpdateGroupChatModal";
 import axios from "axios";
 import ScrollableChat from "./ScrollableChat";
+import { io } from "socket.io-client";
 
 interface SingleChatProps {
   fetchAgain: boolean;
   setFetchAgain: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
+const ENDPOINT = "http://localhost:5000";
+var socket: any, selectedChatCompare: any;
+
 const SingleChat = ({ fetchAgain, setFetchAgain }: SingleChatProps) => {
   const [messages, setMessages] = useState<any>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const { user, selectedChat, setSelectedChat } = ChatState();
+
+  const [typing, setTyping] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+
+  const [socketConnected, setSocketConnected] = useState(false);
+
+  const { user, selectedChat, setSelectedChat, notification, setNotification } =
+    ChatState();
 
   const toast = useToast();
+
+  useEffect(() => {
+    socket = io(ENDPOINT);
+    socket.emit("setup", user);
+    socket.on("connected", () => setSocketConnected(true));
+    socket.on("typing", () => setIsTyping(true));
+    socket.on("stop typing", () => setIsTyping(false));
+  }, []);
 
   const fetchMessages = async () => {
     if (!selectedChat) return;
@@ -45,6 +64,8 @@ const SingleChat = ({ fetchAgain, setFetchAgain }: SingleChatProps) => {
         config
       );
       setMessages(data);
+
+      socket.emit("join chat", selectedChat._id);
     } catch (error) {
       toast({
         title: "Failed to load the chat! Try again",
@@ -60,10 +81,28 @@ const SingleChat = ({ fetchAgain, setFetchAgain }: SingleChatProps) => {
 
   useEffect(() => {
     fetchMessages();
+    selectedChatCompare = selectedChat;
   }, [selectedChat]);
+
+  useEffect(() => {
+    socket.on("message received", (newMessageReceived: any) => {
+      if (
+        !selectedChatCompare ||
+        selectedChatCompare._id !== newMessageReceived.chat._id
+      ) {
+        if (!notification.includes(newMessageReceived)) {
+          setNotification([newMessageReceived, ...notification]);
+          setFetchAgain(!fetchAgain);
+        }
+      } else {
+        setMessages([...messages, newMessageReceived]);
+      }
+    });
+  });
 
   const sendMessage = async (e: React.KeyboardEvent<HTMLImageElement>) => {
     if (e.key === "Enter" && newMessage) {
+      socket.emit("stop typing", selectedChat._id);
       try {
         const config = {
           headers: {
@@ -78,7 +117,8 @@ const SingleChat = ({ fetchAgain, setFetchAgain }: SingleChatProps) => {
           { content: newMessage, chatId: selectedChat._id },
           config
         );
-        console.log(data);
+
+        socket.emit("new message", data);
         setMessages([...messages, data]);
       } catch (error) {
         toast({
@@ -94,8 +134,26 @@ const SingleChat = ({ fetchAgain, setFetchAgain }: SingleChatProps) => {
 
   const typingHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNewMessage(e.target.value);
-    // Typing Indicator Logic
+
+    if (!socketConnected) return;
+
+    if (!typing) {
+      setTyping(true);
+      socket.emit("typing", selectedChat._id);
+    }
+
+    let lastTypingTime = new Date().getTime();
+    var timerLength = 3000;
+    setTimeout(() => {
+      var timeNow = new Date().getTime();
+      var timeDiff = timeNow - lastTypingTime;
+      if (timeDiff >= timerLength && typing) {
+        socket.emit("stop typing", selectedChat._id);
+        setTyping(false);
+      }
+    }, timerLength);
   };
+
   return (
     <>
       {selectedChat ? (
@@ -157,6 +215,7 @@ const SingleChat = ({ fetchAgain, setFetchAgain }: SingleChatProps) => {
               </div>
             )}
             <FormControl onKeyDown={sendMessage} isRequired mt={3}>
+              {isTyping && <p style={{ color: "gray" }}>Typing...</p>}
               <Input
                 variant={"filled"}
                 bg="#E0E0E0"

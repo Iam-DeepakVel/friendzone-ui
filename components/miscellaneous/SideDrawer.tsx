@@ -27,6 +27,7 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 import ChatLoading from "../../widgets/ChatLoading";
 import { User } from "@/containers/Home";
+import { getSender } from "@/config/ChatLogics";
 
 export const UserListItem = ({
   user,
@@ -77,7 +78,14 @@ const SideDrawer = () => {
   const [loading, setLoading] = useState(false);
   const [loadingChat, setLoadingChat] = useState(false);
 
-  const { user, setUser, setSelectedChat, chats, setChats } = ChatState();
+  const {
+    user,
+    setSelectedChat,
+    chats,
+    setChats,
+    notification,
+    setNotification,
+  } = ChatState();
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   const router = useRouter();
@@ -193,10 +201,30 @@ const SideDrawer = () => {
 
         <div>
           <Menu>
-            <MenuButton p={"1"}>
+            <MenuButton p={"1"} position={"relative"}>
+              {notification.length > 0 && (
+                <p className="notification-badge">{notification.length}</p>
+              )}
               <BellIcon fontSize={"2xl"} m={1} />
             </MenuButton>
-            {/* <MenuList></MenuList> */}
+            <MenuList pl={2}>
+              {!notification.length && "No New Messages"}
+              {notification.map((n: any) => (
+                <MenuItem
+                  key={n._id}
+                  onClick={() => {
+                    setSelectedChat(n.chat);
+                    setNotification(
+                      notification.filter((notif: any) => notif !== n)
+                    );
+                  }}
+                >
+                  {n.chat.isGroupChat
+                    ? `New Message in ${n.chat.chatName}`
+                    : `New Message from ${getSender(user._id, n.chat.users)}`}
+                </MenuItem>
+              ))}
+            </MenuList>
           </Menu>
 
           <Menu>
